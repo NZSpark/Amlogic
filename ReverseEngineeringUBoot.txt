@@ -1,0 +1,28 @@
+
+* u-boot.bin build process
+u-boot - is executable ELF.                                 
+         -> u-boot-orig.bin  - is executable ASM                  
+                      -> u-boot-com.bin - is ucl compressed ASM 
+                                    -> u-boot.bin - is firmware.bin+u-boot-com.bin.
+arm-none-eabi-gcc  +  arm-none-eabi-ld    
+        --> arm-none-eabi-objcopy --gap-fill=0xff -O binary  
+                     --> uclpack                                                 
+                                   --> convert --soc m8b 
+
+* reverse engineering
+dd if=u-boot.bin of=u-boot-com.bin bs=1 skip=32768, to get u-boot-com.bin from u-boot.bin
+uclpack -d u-boot-com.bin u-boot-uncom.bin, to unpack u-boot-com.bin to u-boot-uncom.bin, here u-boot-uncom.bin is same as u-boot-orig.bin.
+arm-none-eabi-objcopy -B arm -O elf32-littlearm -I binary u-boot-orig.bin u-boot.o
+arm-none-eabi-ld u-boot.o -T binary.lds -o u-boot.out
+
+binary.lds:
+ENTRY(_start);
+
+SECTIONS
+{
+    _start = 0x8F800000;
+    . = 0x8F000000;
+    .data : {
+        *(.data)
+    }
+}
