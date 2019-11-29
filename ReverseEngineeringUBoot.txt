@@ -11,18 +11,64 @@ arm-none-eabi-gcc  +  arm-none-eabi-ld
 
 * reverse engineering
 dd if=u-boot.bin of=u-boot-com.bin bs=1 skip=32768, to get u-boot-com.bin from u-boot.bin
-uclpack -d u-boot-com.bin u-boot-uncom.bin, to unpack u-boot-com.bin to u-boot-uncom.bin, here u-boot-uncom.bin is same as u-boot-orig.bin.
-arm-none-eabi-objcopy -B arm -O elf32-littlearm -I binary u-boot-orig.bin u-boot.o
-arm-none-eabi-ld u-boot.o -T binary.lds -o u-boot.out
+uclpack -d u-boot-com.bin u-boot-uncom.bin, to unpack u-boot-com.bin to u-boot-uncom.bin  -> here u-boot-uncom.bin is same as u-boot-orig.bin.
+arm-none-eabi-objcopy -B arm -O elf32-littlearm -I binary u-boot-orig.bin u-boot.o  -> only one data section in u-boot.o
+arm-none-eabi-ld  -Ttext=0x8F800000 -T binary.lds -o u-boot-rev.out u-boot.o  -> here u-boot-rev.out is same as u-boot, it's elf file.
 
 binary.lds:
+OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
+OUTPUT_ARCH(arm)
+
 ENTRY(_start);
 
 SECTIONS
 {
-    _start = 0x8F800000;
-    . = 0x8F000000;
-    .data : {
-        *(.data)
-    }
+	 . = 0x00000000;
+	 _start = .;
+	 . = ALIGN(4);
+	 .text :
+	 {
+	   *(.data)
+	 }
 }
+
+[spark@desktop build]$ arm-none-eabi-objdump -D u-boot | strings |grep -i section
+Disassembly of section .text:
+Disassembly of section .text.__udivmoddi4:
+Disassembly of section .rodata:
+Disassembly of section .hash:
+Disassembly of section .mmudata:
+Disassembly of section .ARM.exidx.text.__udivmoddi4:
+Disassembly of section .data:
+Disassembly of section .got:
+Disassembly of section .got.plt:
+Disassembly of section .data.rel.ro:
+Disassembly of section .data.rel.local:
+Disassembly of section .data.rel:
+Disassembly of section .data.rel.ro.local:
+Disassembly of section .setting:
+Disassembly of section .u_boot_cmd:
+Disassembly of section .dynsym:
+Disassembly of section .rel.dyn:
+Disassembly of section .bss:
+Disassembly of section COMMON:
+Disassembly of section .net:
+Disassembly of section .ARM.attributes:
+Disassembly of section .comment:
+Disassembly of section .debug_line:
+Disassembly of section .debug_info:
+Disassembly of section .debug_abbrev:
+Disassembly of section .debug_aranges:
+Disassembly of section .debug_str:
+Disassembly of section .debug_frame:
+Disassembly of section .debug_loc:
+Disassembly of section .debug_ranges:
+Disassembly of section .debug_pubnames:
+
+[spark@desktop build]$ arm-none-eabi-objdump -D u-boot-rev.out | strings |grep -i section
+Disassembly of section .text:
+
+All sections have been lost after reverse engineering.
+
+
+
